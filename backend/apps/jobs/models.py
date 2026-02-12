@@ -12,9 +12,9 @@ class JobApplication(models.Model):
         related_name='job_applications'
     )
 
-    company_name = models.CharField(max_length=255)
-    job_title = models.CharField(max_length=255)
-    job_url = models.URLField()
+    company_name = models.CharField(max_length=255, blank=True, default="")
+    job_title = models.CharField(max_length=255, blank=True, default="")
+    job_url = models.URLField(max_length=1000, blank=True, null=True)
 
     job_description = models.TextField(blank=True, default="")
 
@@ -32,12 +32,16 @@ class JobApplication(models.Model):
             ("pending", "Pending"),
             ("success", "Success"),
             ("failed", "Failed"),
+            ("needs_manual", "Needs Manual Input"),
         ],
         default="pending"
     )
+    extraction_error = models.TextField(blank=True, default="")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.company_name} - {self.job_title}"
+        company = self.company_name or "Unknown Company"
+        title = self.job_title or "Unknown Job"
+        return f"{company} - {title}"
