@@ -19,7 +19,15 @@ function extractApiError(error, fallbackMessage) {
   return fallbackMessage;
 }
 
-export default function Dashboard({ onLogout }) {
+function getStatusBadgeClass(status) {
+  if (status === "success") return "bg-green-100 text-green-800";
+  if (status === "pending") return "bg-yellow-100 text-yellow-800";
+  if (status === "needs_manual") return "bg-orange-100 text-orange-800";
+  if (status === "failed") return "bg-red-100 text-red-800";
+  return "bg-gray-100 text-gray-800";
+}
+
+export default function Dashboard({ onLogout, onOpenJob }) {
   const [jobs, setJobs] = useState([]);
   const [url, setUrl] = useState("");
 
@@ -161,8 +169,31 @@ export default function Dashboard({ onLogout }) {
       <div className="space-y-2">
         {jobs.map((job) => (
           <div key={job.id} className="border p-3">
-            <p className="font-semibold">{job.company_name || "No Company"}</p>
-            <p>{job.job_title || "No Title"}</p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold">{job.company_name || "No Company"}</p>
+                <p>{job.job_title || "No Title"}</p>
+              </div>
+              <span
+                className={`px-2 py-1 text-xs rounded ${getStatusBadgeClass(
+                  job.extraction_status
+                )}`}
+              >
+                {job.extraction_status || "unknown"}
+              </span>
+            </div>
+            {job.extraction_error ? (
+              <p className="text-xs text-red-600 mt-2">{job.extraction_error}</p>
+            ) : null}
+            <button
+              className="mt-3 px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300"
+              onClick={() => {
+                if (typeof onOpenJob === "function") onOpenJob(job.id);
+              }}
+              type="button"
+            >
+              View / Edit
+            </button>
           </div>
         ))}
       </div>
