@@ -1,8 +1,8 @@
 from rest_framework import generics, permissions
 from rest_framework.exceptions import ValidationError
-
 from .models import JobApplication
 from .serializers import JobApplicationSerializer
+from .services.extraction_quality import get_extraction_rejection_reason
 from .services.job_extractor import JobExtractionError, extract_job_posting
 from .tasks import extract_job_description_task
 
@@ -51,6 +51,30 @@ class JobApplicationCreateView(generics.CreateAPIView):
         extracted_description = (extracted.get("job_description") or "").strip()
         extracted_company = (extracted.get("company_name") or "").strip()
         extracted_title = (extracted.get("job_title") or "").strip()
+        extraction_issue = get_extraction_rejection_reason(
+            job_description=extracted_description,
+            job_title=extracted_title,
+            company_name=extracted_company,
+        )
+
+        if extraction_issue:
+            if manual_complete:
+                serializer.save(
+                    user=self.request.user,
+                    description_source="manual",
+                    extraction_status="success",
+                    extraction_error="",
+                )
+                return
+
+            raise ValidationError(
+                {
+                    "detail": (
+                        f"Extraction failed: {extraction_issue}. "
+                        "Provide manual company_name, job_title, and job_description."
+                    )
+                }
+            )
 
         if extracted_description and extracted_company:
             serializer.save(

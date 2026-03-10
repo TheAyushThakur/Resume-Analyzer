@@ -6,7 +6,7 @@ from .utils.pdf_parser import extract_text_from_pdf
 
 @receiver(pre_save, sender=Resume)
 def capture_old_file(sender, instance, **kwargs):
-    # store previous file name on the instance so post_save can detect changes
+    # stores previous file name on the instance so post_save can detect changes
     if instance.pk:
         try:
             old = Resume.objects.get(pk=instance.pk)

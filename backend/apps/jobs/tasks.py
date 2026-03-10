@@ -4,6 +4,7 @@ from apps.jobs.services.job_extractor import (
     extract_job_posting,
     JobExtractionError,
 )
+from apps.jobs.services.extraction_quality import get_extraction_rejection_reason
 
 
 @shared_task
@@ -24,6 +25,17 @@ def extract_job_description_task(job_id):
         text = extracted.get("job_description", "")
         title = extracted.get("job_title", "")
         company = extracted.get("company_name", "")
+        extraction_issue = get_extraction_rejection_reason(
+            job_description=text,
+            job_title=title,
+            company_name=company,
+        )
+
+        if extraction_issue:
+            job.extraction_status = "needs_manual"
+            job.extraction_error = f"{extraction_issue} Please fill details manually."
+            job.save(update_fields=["extraction_status", "extraction_error"])
+            return
 
         job.job_description = text
         if title:

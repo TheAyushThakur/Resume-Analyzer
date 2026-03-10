@@ -6,7 +6,7 @@ from .services import run_ai_analysis
 
 
 @shared_task
-def run_ai_analysis_task(job_id, resume_id, candidate_level="experienced", target_stack=None):
+def run_ai_analysis_task(job_id, resume_id, candidate_level, target_stack=None):
     analysis = None
 
     try:
