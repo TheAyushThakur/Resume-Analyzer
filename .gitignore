@@ -32,6 +32,8 @@ env/
 venv/
 ENV/
 .venv/
+frontend/node_modules/
+backend/staticfiles/
 
 # ===============================
 # Django
@@ -50,6 +52,7 @@ staticfiles/
 # ===============================
 .env
 .env.*
+!.env.example
 *.env
 
 # ===============================
