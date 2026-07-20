@@ -14,6 +14,10 @@ export const API = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+function emitForcedLogout() {
+  window.dispatchEvent(new Event("auth:logout"));
+}
+
 API.interceptors.request.use((config) => {
   const access = getAccessToken();
   if (access) {
@@ -47,6 +51,7 @@ API.interceptors.response.use(
     const refresh = getRefreshToken();
     if (!refresh) {
       clearTokens();
+      emitForcedLogout();
       return Promise.reject(error);
     }
 
@@ -78,6 +83,7 @@ API.interceptors.response.use(
     } catch (refreshError) {
       flushQueue(refreshError, null);
       clearTokens();
+      emitForcedLogout();
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

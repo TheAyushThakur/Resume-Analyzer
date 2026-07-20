@@ -7,7 +7,7 @@ from apps.jobs.models import JobApplication
 from apps.resumes.models import Resume
 from .models import AIAnalysis
 from .serializers import AIAnalysisSerializer
-from .tasks import run_ai_analysis_task
+from .services import run_ai_analysis
 
 
 class RunAIAnalysisView(APIView):
@@ -70,18 +70,51 @@ class RunAIAnalysisView(APIView):
                 "error_message": "",
             },
         )
-        run_ai_analysis_task.delay(job.id, resume.id, candidate_level, target_stack)
 
-        return Response(
-            {
-                "analysis_id": analysis.id,
-                "status": "processing",
-                "candidate_level": candidate_level,
-                "target_stack": target_stack,
-                "message": "AI analysis has started. Poll the result endpoint for updates.",
-            },
-            status=status.HTTP_202_ACCEPTED,
-        )
+        try:
+            result = run_ai_analysis(
+                job,
+                resume,
+                candidate_level=candidate_level,
+                target_stack=target_stack,
+            )
+        except Exception as exc:
+            analysis.status = "failed"
+            analysis.error_message = str(exc)
+            analysis.save(update_fields=["status", "error_message"])
+            return Response(
+                {
+                    "status": "failed",
+                    "detail": str(exc),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        analysis.status = "completed"
+        analysis.resume = resume
+        analysis.candidate_level = candidate_level
+        analysis.target_stack = target_stack
+        analysis.error_message = ""
+        analysis.ats_score = result.get("ats_score", 0)
+        analysis.score_breakdown = result.get("score_breakdown", {})
+        analysis.missing_keywords = result.get("missing_keywords", [])
+        analysis.strengths = result.get("strengths", [])
+        analysis.suggestions = result.get("suggestions", [])
+        analysis.save(update_fields=[
+            "status",
+            "resume",
+            "candidate_level",
+            "target_stack",
+            "error_message",
+            "ats_score",
+            "score_breakdown",
+            "missing_keywords",
+            "strengths",
+            "suggestions",
+        ])
+
+        serializer = AIAnalysisSerializer(analysis)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class AIAnalysisResultView(APIView):

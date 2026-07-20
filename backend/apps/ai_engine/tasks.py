@@ -1,4 +1,15 @@
-from celery import shared_task
+try:
+    from celery import shared_task
+except ModuleNotFoundError:
+    def shared_task(func=None, *decorator_args, **decorator_kwargs):
+        def decorator(task_func):
+            task_func.delay = lambda *args, **kwargs: task_func(*args, **kwargs)
+            return task_func
+
+        if func is not None and callable(func):
+            return decorator(func)
+        return decorator
+
 from apps.jobs.models import JobApplication
 from apps.resumes.models import Resume
 from apps.ai_engine.models import AIAnalysis

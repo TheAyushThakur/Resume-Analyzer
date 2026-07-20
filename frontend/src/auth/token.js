@@ -13,3 +13,28 @@ export const clearTokens = () => {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
 };
+
+function parseJwtPayload(token) {
+  try {
+    const base64 = token.split(".")[1];
+    if (!base64) return null;
+
+    const normalized = base64.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+export const isTokenExpired = (token) => {
+  if (!token) return true;
+  const payload = parseJwtPayload(token);
+  if (!payload?.exp) return true;
+  return payload.exp * 1000 <= Date.now();
+};
+
+export const hasValidAccessToken = () => {
+  const access = getAccessToken();
+  return !!access && !isTokenExpired(access);
+};

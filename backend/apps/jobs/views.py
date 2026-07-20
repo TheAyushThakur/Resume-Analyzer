@@ -4,7 +4,6 @@ from .models import JobApplication
 from .serializers import JobApplicationSerializer
 from .services.extraction_quality import get_extraction_rejection_reason
 from .services.job_extractor import JobExtractionError, extract_job_posting
-from .tasks import extract_job_description_task
 
 
 class JobApplicationCreateView(generics.CreateAPIView):
@@ -112,7 +111,7 @@ class JobApplicationListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return JobApplication.objects.filter(user=self.request.user)
+        return JobApplication.objects.filter(user=self.request.user).order_by("-updated_at", "-id")
 
 
 class JobApplicationDetailView(generics.RetrieveAPIView):
@@ -123,36 +122,9 @@ class JobApplicationDetailView(generics.RetrieveAPIView):
         return JobApplication.objects.filter(user=self.request.user)
 
 
-class JobApplicationUpdateView(generics.UpdateAPIView):
+class JobApplicationDeleteView(generics.DestroyAPIView):
     serializer_class = JobApplicationSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return JobApplication.objects.filter(user=self.request.user)
-
-    def perform_update(self, serializer):
-        job = serializer.save()
-        validated = serializer.validated_data
-
-        manual_fields_updated = any(
-            field in validated for field in ("company_name", "job_title", "job_description")
-        )
-        manual_complete = all(
-            bool((value or "").strip())
-            for value in (job.company_name, job.job_title, job.job_description)
-        )
-        job_url_updated = "job_url" in validated
-
-        if job_url_updated and job.job_url:
-            job.description_source = "extracted"
-            job.extraction_status = "pending"
-            job.extraction_error = ""
-            job.save(update_fields=["description_source", "extraction_status", "extraction_error"])
-            extract_job_description_task.delay(job.id)
-            return
-
-        if manual_fields_updated and manual_complete:
-            job.description_source = "manual"
-            job.extraction_status = "success"
-            job.extraction_error = ""
-            job.save(update_fields=["description_source", "extraction_status", "extraction_error"])

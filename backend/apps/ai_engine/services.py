@@ -6,7 +6,12 @@ from .client import analyze_resume
 logger = logging.getLogger(__name__)
 
 
-def run_ai_analysis(job_application, resume, candidate_level="experienced", target_stack=None):
+def run_ai_analysis(
+    job_application,
+    resume,
+    candidate_level="experienced",
+    target_stack=None,
+):
     if not job_application:
         raise ValueError("JobApplication does not exist")
 

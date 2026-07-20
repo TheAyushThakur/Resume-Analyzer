@@ -16,4 +16,12 @@ class ResumeListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        return Resume.objects.filter(user=self.request.user).order_by("-created_at", "-id")
+
+
+class ResumeDeleteView(generics.DestroyAPIView):
+    serializer_class = ResumeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
         return Resume.objects.filter(user=self.request.user)

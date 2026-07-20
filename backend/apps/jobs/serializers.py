@@ -8,7 +8,12 @@ class JobApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = JobApplication
         fields = '__all__'
-        read_only_fields = ('user', 'description_source', 'extraction_status', 'extraction_error')
+        read_only_fields = (
+            'user',
+            'description_source',
+            'extraction_status',
+            'extraction_error',
+        )
         extra_kwargs = {
             "job_url": {"required": False, "allow_null": True, "allow_blank": True}
         }
